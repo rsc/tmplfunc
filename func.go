@@ -10,9 +10,9 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
-	"text/template/parse"
 
-	"html/template"
+	"rsc.io/tmplfunc/internal/parse"
+
 	htmltemplate "html/template"
 	texttemplate "text/template"
 )
@@ -89,7 +89,7 @@ func funcs(t Template, names, texts []string) error {
 				if err != nil {
 					return "", err
 				}
-				return template.HTML(buf.String()), nil
+				return htmltemplate.HTML(buf.String()), nil
 			}
 		}
 	}
@@ -172,16 +172,4 @@ func bundler(name string) (fn string, bundle func(args []interface{}) (interface
 	}
 
 	return fn, bundle, nil
-}
-
-var funcMap = map[string]interface{}{
-	"_tmplfunc_dict": dict,
-}
-
-func dict(args ...interface{}) map[string]interface{} {
-	m := make(map[string]interface{})
-	for i := 0; i < len(args); i += 2 {
-		m[args[i].(string)] = args[i+1]
-	}
-	return m
 }

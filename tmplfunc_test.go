@@ -25,6 +25,7 @@ var tests = []struct {
 		"EXEC: template: :1:45: executing \"\" at <hello>: error calling hello: too few arguments in call to template hello",
 	},
 	{`{{define "hello who?"}}hello {{.who}}{{end}}{{hello}}`, "hello"},
+	{`{{define "hello who?"}}hello {{.who}}{{end}}{{hello "world"}}`, "hello world"},
 	{`{{define "hello who..."}}hello {{.who}}{{end}}{{hello}}`, "hello []"},
 	{`{{define "hello who..."}}hello {{.who}}{{end}}{{hello "world"}}`, "hello [world]"},
 }
