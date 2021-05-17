@@ -48,49 +48,8 @@ func funcs(t Template, names, texts []string) error {
 	// Install functions for named templates as appropriate.
 	funcs := make(map[string]interface{})
 	for name := range trees {
-		name := name // for closure
-		fn, bundle, err := bundler(name)
-		if err != nil {
+		if err := addFunc(t, name, funcs); err != nil {
 			return err
-		}
-		if fn == "" {
-			continue
-		}
-		switch t := t.(type) {
-		case *texttemplate.Template:
-			funcs[fn] = func(args ...interface{}) (string, error) {
-				t := t.Lookup(name)
-				if t == nil {
-					return "", fmt.Errorf("lost template %q", name)
-				}
-				arg, err := bundle(args)
-				if err != nil {
-					return "", err
-				}
-				var buf bytes.Buffer
-				err = t.Execute(&buf, arg)
-				if err != nil {
-					return "", err
-				}
-				return buf.String(), nil
-			}
-		case *htmltemplate.Template:
-			funcs[fn] = func(args ...interface{}) (htmltemplate.HTML, error) {
-				t := t.Lookup(name)
-				if t == nil {
-					return "", fmt.Errorf("lost template %q", name)
-				}
-				arg, err := bundle(args)
-				if err != nil {
-					return "", err
-				}
-				var buf bytes.Buffer
-				err = t.Execute(&buf, arg)
-				if err != nil {
-					return "", err
-				}
-				return htmltemplate.HTML(buf.String()), nil
-			}
 		}
 	}
 
@@ -101,6 +60,77 @@ func funcs(t Template, names, texts []string) error {
 		t.Funcs(funcs)
 	}
 
+	return nil
+}
+
+// Funcs installs functions for all the templates in the set containing t.
+// After using t.Clone it is necessary to call Funcs on the result to arrange
+// for the functions to invoke the cloned templates and not the originals.
+func Funcs(t Template) error {
+	funcs := make(map[string]interface{})
+	switch t := t.(type) {
+	case *texttemplate.Template:
+		for _, t1 := range t.Templates() {
+			if err := addFunc(t, t1.Name(), funcs); err != nil {
+				return err
+			}
+		}
+		t.Funcs(funcs)
+	case *htmltemplate.Template:
+		for _, t1 := range t.Templates() {
+			if err := addFunc(t, t1.Name(), funcs); err != nil {
+				return err
+			}
+		}
+		t.Funcs(funcs)
+	}
+	return nil
+}
+
+func addFunc(t Template, name string, funcs map[string]interface{}) error {
+	fn, bundle, err := bundler(name)
+	if err != nil {
+		return err
+	}
+	if fn == "" {
+		return nil
+	}
+	switch t := t.(type) {
+	case *texttemplate.Template:
+		funcs[fn] = func(args ...interface{}) (string, error) {
+			t := t.Lookup(name)
+			if t == nil {
+				return "", fmt.Errorf("lost template %q", name)
+			}
+			arg, err := bundle(args)
+			if err != nil {
+				return "", err
+			}
+			var buf bytes.Buffer
+			err = t.Execute(&buf, arg)
+			if err != nil {
+				return "", err
+			}
+			return buf.String(), nil
+		}
+	case *htmltemplate.Template:
+		funcs[fn] = func(args ...interface{}) (htmltemplate.HTML, error) {
+			t := t.Lookup(name)
+			if t == nil {
+				return "", fmt.Errorf("lost template %q", name)
+			}
+			arg, err := bundle(args)
+			if err != nil {
+				return "", err
+			}
+			var buf bytes.Buffer
+			err = t.Execute(&buf, arg)
+			if err != nil {
+				return "", err
+			}
+			return htmltemplate.HTML(buf.String()), nil
+		}
+	}
 	return nil
 }
 

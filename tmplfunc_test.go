@@ -91,3 +91,21 @@ func TestGlob(t *testing.T) {
 		t.Fatalf("out = %q, want %q", out, "y")
 	}
 }
+
+func TestFuncs(t *testing.T) {
+	tmpl := htmltemplate.New("")
+	MustParseGlob(tmpl, "testdata/*.tmpl")
+	htmltemplate.Must(tmpl.Parse("{{x .}}"))
+
+	tmpl2 := htmltemplate.Must(tmpl.Clone())
+	if err := Funcs(tmpl2); err != nil {
+		t.Fatal(err)
+	}
+	tmpl2.Execute(new(bytes.Buffer), nil)
+
+	if _, err := tmpl.Clone(); err != nil {
+		// Happens if you forget to call Funcs above:
+		//	cannot Clone "" after it has executed
+		t.Fatal(err)
+	}
+}
